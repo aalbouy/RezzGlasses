@@ -6,14 +6,14 @@
 #define DATA_PIN 6
 #define NUM_EYES 2
 #define NUM_RINGS 3
-#define BRIGHTNESS 10 // [0; 255]
+#define BRIGHTNESS 5 // [0; 255]
 
 #define RED_HUE 0
 #define GREEN_HUE 100
 #define BLUE_HUE 230
 #define PURPLE_HUE 270
 
-#define RANDOM_PICK_INTERVAL_SECONDS 5
+#define RANDOM_PICK_INTERVAL_SECONDS 30
 #define RANDOM_PICK_INTERVAL_MSECONDS RANDOM_PICK_INTERVAL_SECONDS*1000
 
 // Order: 24-LED ring, 16-LED ring, 8-LED ring
@@ -34,7 +34,7 @@ CRGB leds[100];  // Holds up to 96 LEDs, extra for safety
 int pos[NUM_RINGS] = {0};
 
 // Currently used direction
-int usedDirection[NUM_RINGS] = {+1};
+int usedDirection[NUM_RINGS] = {+1, +1, +1};
 
 // Currently used hue
 int currentHue = RED_HUE;
@@ -43,7 +43,7 @@ int currentHue = RED_HUE;
 unsigned long lastChange = millis();
 
 // Boolean if the eyes are opposed
-bool opposeEyes = true;
+bool opposeEyes = false;
 
 // ------------------------------------------------------
 // Random pick direction and color
@@ -113,7 +113,7 @@ void animateMirroredEyes(int hue) {
 // ------------------------------------------------------
 void setup() {
     randomSeed(analogRead(0));
-    pickDirectionAndColor();
+    // pickDirectionAndColor();
     FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, totalLEDs);
     FastLED.setBrightness(BRIGHTNESS);
 }
@@ -129,7 +129,7 @@ void loop() {
     delay(70);
 
     if (millis() > RANDOM_PICK_INTERVAL_MSECONDS + lastChange) {
-        pickDirectionAndColor();
+        // pickDirectionAndColor();
         lastChange = millis();
     }
 }
