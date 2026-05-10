@@ -6,14 +6,14 @@
 #define DATA_PIN 6
 #define NUM_EYES 2
 #define NUM_RINGS 3
-#define BRIGHTNESS 10 // [0; 255]
+#define BRIGHTNESS 5 // [0; 255]
 
 #define RED_HUE 0
 #define GREEN_HUE 100
 #define BLUE_HUE 230
 #define PURPLE_HUE 270
 
-#define RANDOM_PICK_INTERVAL_SECONDS 5
+#define RANDOM_PICK_INTERVAL_SECONDS 30
 #define RANDOM_PICK_INTERVAL_MSECONDS RANDOM_PICK_INTERVAL_SECONDS*1000
 
 // Order: 24-LED ring, 16-LED ring, 8-LED ring
@@ -34,7 +34,7 @@ CRGB leds[100];  // Holds up to 96 LEDs, extra for safety
 int pos[NUM_RINGS] = {0};
 
 // Currently used direction
-int usedDirection[NUM_RINGS] = {+1};
+int usedDirection[NUM_RINGS] = {+1, +1, +1};
 
 // Currently used hue
 int currentHue = GREEN_HUE;
@@ -43,7 +43,7 @@ int currentHue = GREEN_HUE;
 unsigned long lastChange = millis();
 
 // Boolean if the eyes are opposed
-bool opposeEyes = true;
+bool opposeEyes = false;
 
 // ------------------------------------------------------
 // LED index mapping
@@ -218,7 +218,11 @@ void loop() {
     delay(70);
 
     if (millis() > RANDOM_PICK_INTERVAL_MSECONDS + lastChange) {
+<<<<<<< HEAD
         pickSettings();
+=======
+        // pickDirectionAndColor();
+>>>>>>> 7e35df221b369abcdd4841e58141094e13ddd85b
         lastChange = millis();
     }
 }
