@@ -6,15 +6,15 @@
 #define DATA_PIN 6
 #define NUM_EYES 2
 #define NUM_RINGS 3
-#define BRIGHTNESS 5 // [0; 255]
+#define BRIGHTNESS 10 // [0; 255]
 
 #define RED_HUE 0
 #define GREEN_HUE 100
 #define BLUE_HUE 230
 #define PURPLE_HUE 270
 
-#define RANDOM_PICK_INTERVAL_SECONDS 30
-#define RANDOM_PICK_INTERVAL_MSECONDS RANDOM_PICK_INTERVAL_SECONDS*1000
+#define RANDOM_PICK_INTERVAL_SECONDS 60L
+#define RANDOM_PICK_INTERVAL_MSECONDS 1000*RANDOM_PICK_INTERVAL_SECONDS
 
 // Order: 24-LED ring, 16-LED ring, 8-LED ring
 int ringSize[NUM_RINGS] = {24, 16, 8};
@@ -180,22 +180,102 @@ void patternRainbow(int hue) {
     }
 }
 
+// ------------------------------------------------------
+// Pattern: Top/Bottom Split
+// Top half lights up, then bottom half, alternating
+// ------------------------------------------------------
+
+int splitPhase = 0;        // 0 = top, 1 = bottom
+unsigned long splitLastStep = 0;
+#define SPLIT_STEP_MS 400  // time each half stays lit
+
+void patternSplit(int hue) {
+    unsigned long now = millis();
+
+    if (now - splitLastStep > SPLIT_STEP_MS) {
+        splitLastStep = now;
+        splitPhase = (splitPhase + 1) % 2;
+    }
+
+    for (int eye = 0; eye < NUM_EYES; eye++) {
+        for (int r = 0; r < NUM_RINGS; r++) {
+            int len = ringSize[r];
+            int half = len / 2;
+
+            for (int i = 0; i < len; i++) {
+                int globalIndex = idx(eye, r, i);
+
+                // Top half: pixels 0 to half-1, shifted by 90° 
+                // Bottom half: pixels half to len-1, shifted by 90°
+                bool isTop = ((i + len / 4) % len) < half;
+                bool lightUp  = (splitPhase == 0) ? isTop : !isTop;
+
+                if (lightUp)
+                    leds[globalIndex] = CHSV(hue, 255, 255);
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------
+// Pattern: Alternating Colors
+// Adjacent LEDs have inverted/complementary hue
+// ------------------------------------------------------
+int alternateOffset = 0;
+unsigned long alternateLastStep = 0;
+#define ALTERNATE_STEP_MS 100  // adjust to taste
+
+void patternAlternate(int hue) {
+    int complementHue = (hue + 128) % 256;
+
+    unsigned long now = millis();
+    if (now - alternateLastStep > ALTERNATE_STEP_MS) {
+        alternateLastStep = now;
+        alternateOffset = (alternateOffset + 1) % 2;
+    }
+
+    for (int eye = 0; eye < NUM_EYES; eye++) {
+        for (int r = 0; r < NUM_RINGS; r++) {
+            int len = ringSize[r];
+            for (int i = 0; i < len; i++) {
+                int globalIndex = idx(eye, r, i);
+                if ((i + alternateOffset) % 2 == 0)
+                    leds[globalIndex] = CHSV(hue, 255, 255);
+                else
+                    leds[globalIndex] = CHSV(complementHue, 255, 255);
+            }
+        }
+    }
+}
+
 // Pattern function signature - To 
 typedef void (*PatternFunc)(int hue);
-PatternFunc patterns[] = { animateMirroredEyes, patternCascade, patternRainbow };
+PatternFunc patterns[] = { animateMirroredEyes, patternCascade, patternRainbow, patternSplit, patternAlternate };
+// Probability for each pattern to appear out of 100
+int patternWeights[]   = { 80                 , 5             , 5             , 5           , 5                };
 int numPatterns = sizeof(patterns) / sizeof(patterns[0]);
 int currentPattern = 0;
 
 // ------------------------------------------------------
 // Random pick direction and color
 // ------------------------------------------------------
+int pickWeightedPattern() {
+    int roll = random(100);
+    int cumulative = 0;
+    for (int i = 0; i < numPatterns; i++) {
+        cumulative += patternWeights[i];
+        if (roll < cumulative)
+            return i;
+    }
+    return numPatterns - 1;  // fallback
+}
+
 void pickSettings() {
     currentHue = random(359);
     // Only changing middle ring
     usedDirection[1] =  random(2) * 2 - 1; // -1 or +1
-    currentPattern = random(numPatterns);
+    currentPattern = pickWeightedPattern();
 }
-
 
 // ------------------------------------------------------
 // SETUP
@@ -207,7 +287,6 @@ void setup() {
     FastLED.setBrightness(BRIGHTNESS);
 }
 
-
 // ------------------------------------------------------
 // LOOP
 // ------------------------------------------------------
@@ -218,11 +297,7 @@ void loop() {
     delay(70);
 
     if (millis() > RANDOM_PICK_INTERVAL_MSECONDS + lastChange) {
-<<<<<<< HEAD
         pickSettings();
-=======
-        // pickDirectionAndColor();
->>>>>>> 7e35df221b369abcdd4841e58141094e13ddd85b
         lastChange = millis();
     }
 }
